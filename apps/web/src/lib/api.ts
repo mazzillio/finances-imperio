@@ -1,6 +1,7 @@
 import { config } from '../config';
 import { session } from './session';
 import type {
+  BalanceHistory,
   Category,
   CreatedInvite,
   Invite,
@@ -83,6 +84,8 @@ export const api = {
   listTransactions: (filters: TransactionFilters, limit: PageSize, cursor?: string) =>
     request<TransactionPage>(`/transactions${qs({ ...filters, limit, cursor })}`),
   summary: (from: string, to: string) => request<Summary>(`/transactions/summary${qs({ from, to })}`),
+  balanceHistory: (from: string, to: string) =>
+    request<BalanceHistory>(`/transactions/balance-history${qs({ from, to })}`),
   createTransaction: (input: TransactionInput) =>
     request('/transactions', { method: 'POST', body: input }),
   updateTransaction: (id: string, input: Partial<TransactionInput>) =>

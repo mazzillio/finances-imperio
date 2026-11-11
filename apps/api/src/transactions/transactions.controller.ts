@@ -25,6 +25,12 @@ export class TransactionsController {
     return this.transactions.summary(query);
   }
 
+  /** Fechamento dia a dia (saldo acumulado ao fim de cada dia com movimento). */
+  @Get('balance-history')
+  balanceHistory(@Query() query: SummaryQuery) {
+    return this.transactions.balanceHistory(query);
+  }
+
   /** Planilha .xlsx com os lançamentos dos filtros informados (mesmos filtros da lista). */
   @Get('export')
   async export(@Query() query: ListTransactionsQuery, @Res() res: Response) {

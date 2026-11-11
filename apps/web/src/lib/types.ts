@@ -70,9 +70,30 @@ export interface Summary {
   inCents: number;
   outCents: number;
   balanceCents: number;
+  /** Saldo acumulado desde o primeiro lançamento (não depende do período). */
+  totalBalanceCents: number;
   count: number;
   byCategory: { categoryId: number; name: string; color: string; type: TransactionType; totalCents: number; count: number }[];
   byMonth: { month: string; inCents: number; outCents: number; balanceCents: number }[];
+}
+
+/** Fechamento de um dia com movimento. */
+export interface BalanceDay {
+  day: string;
+  inCents: number;
+  outCents: number;
+  /** Resultado do dia: entradas menos saídas. */
+  netCents: number;
+  /** Saldo acumulado ao fim do dia. */
+  closingCents: number;
+  count: number;
+}
+
+export interface BalanceHistory {
+  from: string;
+  to: string;
+  /** Do dia mais recente para o mais antigo. */
+  days: BalanceDay[];
 }
 
 export interface TransactionInput {

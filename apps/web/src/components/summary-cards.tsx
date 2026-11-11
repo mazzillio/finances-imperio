@@ -14,7 +14,7 @@ export function SummaryCards({ from, to }: { from: string; to: string }) {
     { label: 'Entradas', value: data?.inCents, cls: 'text-in', icon: TrendingUp, iconCls: 'bg-in/15 text-in' },
     { label: 'Saídas', value: data?.outCents, cls: 'text-out', icon: TrendingDown, iconCls: 'bg-out/15 text-out' },
     {
-      label: 'Saldo',
+      label: 'Saldo do período',
       value: data?.balanceCents,
       cls: balance < 0 ? 'text-out' : 'text-gold-300',
       icon: Wallet,

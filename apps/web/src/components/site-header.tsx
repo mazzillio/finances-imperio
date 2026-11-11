@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { LayoutDashboard, LogOut, Tags, UserRound, Users } from 'lucide-react';
+import { Landmark, LayoutDashboard, LogOut, Tags, UserRound, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, NavLink } from 'react-router';
 import { api } from '../lib/api';
@@ -21,6 +21,9 @@ export function SiteHeader({ children }: { children?: ReactNode }) {
         <nav className="flex items-center gap-1 text-sm">
           <NavLink to="/" end className={navClass} title="Painel">
             <LayoutDashboard /> <span className="max-md:hidden">Painel</span>
+          </NavLink>
+          <NavLink to="/saldo" className={navClass} title="Histórico de saldo">
+            <Landmark /> <span className="max-md:hidden">Saldo</span>
           </NavLink>
           <NavLink to="/categorias" className={navClass} title="Categorias">
             <Tags /> <span className="max-md:hidden">Categorias</span>

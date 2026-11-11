@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import './index.css';
 import { DashboardPage } from './pages/dashboard-page';
+import { BalanceHistoryPage } from './pages/balance-history-page';
 import { CategoriesPage } from './pages/categories-page';
 import { InvitePage } from './pages/invite-page';
 import { LoginPage } from './pages/login-page';
@@ -24,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/convite" element={<InvitePage />} />
           <Route element={<RequireSession />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/saldo" element={<BalanceHistoryPage />} />
             <Route path="/categorias" element={<CategoriesPage />} />
             <Route path="/usuarios" element={<UsersPage />} />
           </Route>

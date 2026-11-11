@@ -122,8 +122,10 @@ export class TransactionsService {
     const outSum = sql<number>`coalesce(sum(${dailyTotals.totalCents}) filter (where ${dailyTotals.type} = 'saida'), 0)::bigint`;
     const month = sql<string>`to_char(${dailyTotals.day}, 'YYYY-MM')`;
 
-    const [[totals], byCategory, byMonth] = await Promise.all([
+    const [[totals], [overall], byCategory, byMonth] = await Promise.all([
       this.db.select({ inCents: inSum, outCents: outSum, count: sql<number>`coalesce(sum(${dailyTotals.count}), 0)::int` }).from(dailyTotals).where(range),
+      // Saldo acumulado: tudo que já foi lançado, sem filtro de período.
+      this.db.select({ inCents: inSum, outCents: outSum }).from(dailyTotals),
       this.db
         .select({
           categoryId: dailyTotals.categoryId,
@@ -157,11 +159,59 @@ export class TransactionsService {
       inCents,
       outCents,
       balanceCents: inCents - outCents,
+      /** Saldo acumulado desde o primeiro lançamento (não depende do período). */
+      totalBalanceCents: Number(overall.inCents) - Number(overall.outCents),
       count: Number(totals.count),
       byCategory: byCategory.map((r) => num(r, ['totalCents', 'count'])),
       byMonth: byMonth.map((r) => {
         const x = num(r, ['inCents', 'outCents']);
         return { ...x, balanceCents: x.inCents - x.outCents };
+      }),
+    };
+  }
+
+  /**
+   * Fechamento de cada dia com movimento no período: entradas, saídas e o saldo acumulado
+   * até o fim daquele dia. Calculado de daily_totals (a PK começa por `day`), então não
+   * precisa de tabela própria e um lançamento retroativo já corrige os dias seguintes.
+   */
+  async balanceHistory({ from, to }: SummaryQuery) {
+    if (from > to) throw new BadRequestException('A data inicial precisa ser antes da final');
+    const perDay = this.db
+      .select({
+        day: dailyTotals.day,
+        inCents: sql<number>`coalesce(sum(${dailyTotals.totalCents}) filter (where ${dailyTotals.type} = 'entrada'), 0)::bigint`.as('in_cents'),
+        outCents: sql<number>`coalesce(sum(${dailyTotals.totalCents}) filter (where ${dailyTotals.type} = 'saida'), 0)::bigint`.as('out_cents'),
+        count: sql<number>`sum(${dailyTotals.count})::int`.as('count'),
+      })
+      .from(dailyTotals)
+      .groupBy(dailyTotals.day)
+      // Dia em que tudo foi excluído fica zerado no resumo: não é dia trabalhado.
+      .having(sql`sum(${dailyTotals.count}) > 0`)
+      .as('per_day');
+    // O acumulado soma desde o primeiro dia; o filtro de período vem só depois, por fora.
+    const running = this.db
+      .select({
+        day: perDay.day,
+        inCents: perDay.inCents,
+        outCents: perDay.outCents,
+        count: perDay.count,
+        closingCents: sql<number>`(sum(${perDay.inCents} - ${perDay.outCents}) over (order by ${perDay.day}))::bigint`.as('closing_cents'),
+      })
+      .from(perDay)
+      .as('running');
+    const rows = await this.db
+      .select()
+      .from(running)
+      .where(and(gte(running.day, from), lte(running.day, to)))
+      .orderBy(desc(running.day));
+    return {
+      from,
+      to,
+      days: rows.map((r) => {
+        const inCents = Number(r.inCents);
+        const outCents = Number(r.outCents);
+        return { day: r.day, inCents, outCents, netCents: inCents - outCents, closingCents: Number(r.closingCents), count: Number(r.count) };
       }),
     };
   }
