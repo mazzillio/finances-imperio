@@ -1,0 +1,27 @@
+{
+  "name": "imperio-financas",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "install:all": "pnpm install",
+    "install:api": "pnpm install --filter @imperio/api",
+    "install:web": "pnpm install --filter @imperio/web",
+    "add:api": "pnpm --filter @imperio/api add",
+    "add:web": "pnpm --filter @imperio/web add",
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:api": "pnpm --filter @imperio/api dev",
+    "dev:web": "pnpm --filter @imperio/web dev",
+    "dev:lan": "node scripts/dev-lan.mjs",
+    "build": "pnpm --filter \"./apps/*\" build",
+    "typecheck": "pnpm --filter \"./apps/*\" typecheck",
+    "lint": "pnpm --filter \"./apps/*\" lint",
+    "db:generate": "pnpm --filter @imperio/api db:generate",
+    "db:migrate": "pnpm --filter @imperio/api db:migrate",
+    "db:seed": "pnpm --filter @imperio/api db:seed",
+    "db:studio": "pnpm --filter @imperio/api db:studio",
+    "db:studio:lan": "node scripts/studio-lan.mjs"
+  }
+}

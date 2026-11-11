@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+
+# Pacotes com scripts de instalação que podem rodar (build nativo).
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@swc/core'
+  - esbuild

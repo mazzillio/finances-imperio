@@ -1,0 +1,106 @@
+@import 'tailwindcss';
+
+/*
+ * Paleta da identidade visual do Império Poker (a mesma do imperio-poker-ranking).
+ * O app é só escuro, como o site do clube.
+ */
+@theme {
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Archivo Black', 'Outfit', sans-serif;
+
+  --color-gold-100: #fffaa4;
+  --color-gold-200: #ffe98a;
+  --color-gold-300: #f0d060;
+  --color-gold-400: #e0b050;
+  --color-gold-500: #c99b35;
+  --color-gold-700: #8a6a1f;
+  --color-gold-900: #5c4512;
+
+  --color-background: #0a0a0c; /* black-900 */
+  --color-foreground: #f4f6f9; /* ice-100 */
+  --color-card: #16161a; /* black-700 */
+  --color-muted: #1d1d22; /* black-600 */
+  --color-popover: #1d1d22; /* black-600 */
+  --color-muted-foreground: #ababb5; /* gray-200 */
+  --color-border: #26262c; /* black-500 */
+  --color-primary: #e0b050; /* gold-400 */
+  --color-primary-foreground: #141004; /* tinta sobre o dourado */
+  --color-ring: #e0b050;
+
+  /* Entradas e saídas */
+  --color-in: #2ebd7f; /* success */
+  --color-out: #e5484d; /* destructive */
+
+  --radius-card: 0.75rem;
+}
+
+@layer base {
+  html {
+    color-scheme: dark; /* calendário, selects e barras de rolagem nativos no tema escuro */
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    /* Brilho dourado no topo, como no site. */
+    background-image: radial-gradient(
+      ellipse 60% 45% at 50% 0%,
+      rgb(224 176 80 / 0.14) 0%,
+      rgb(224 176 80 / 0.04) 45%,
+      transparent 70%
+    );
+    background-repeat: no-repeat;
+  }
+  h1 {
+    @apply font-display tracking-wide uppercase;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+/* Os mesmos desenhos dos componentes shadcn (new-york) usados no ranking. */
+@layer components {
+  .card {
+    @apply rounded-[var(--radius-card)] border bg-card shadow-sm;
+  }
+  .field {
+    @apply h-9 min-w-0 rounded-md border bg-muted/60 px-3 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50;
+  }
+  .btn {
+    @apply inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md px-4 text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0;
+  }
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+  .btn-outline {
+    @apply border bg-muted/40 hover:bg-muted hover:text-gold-300;
+  }
+  .btn-ghost {
+    @apply hover:bg-muted hover:text-gold-300;
+  }
+  .btn-sm {
+    @apply h-8 gap-1.5 px-3;
+  }
+  .btn-icon {
+    @apply size-8 px-0;
+  }
+  /* Controle segmentado (entrada/saída) */
+  .segmented {
+    @apply grid gap-1 rounded-lg border bg-muted/60 p-1;
+  }
+  .segment {
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-4;
+  }
+  .pop-in {
+    animation: pop-in 120ms ease-out;
+  }
+  .label {
+    @apply text-xs font-semibold tracking-wider text-muted-foreground uppercase;
+  }
+}

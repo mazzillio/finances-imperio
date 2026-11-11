@@ -1,0 +1,37 @@
+# Banco local: Postgres + proxy WebSocket do Neon. A API roda fora do Docker (pnpm dev).
+# Subir: docker compose up -d
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: imperio
+      POSTGRES_PASSWORD: imperio
+      POSTGRES_DB: imperio
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U imperio -d imperio"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # A API usa @neondatabase/serverless (WebSocket). Este proxy traduz WebSocket -> TCP do Postgres.
+  # No apps/api/.env: NEON_LOCAL_PROXY="localhost:5433"
+  neon-proxy:
+    image: ghcr.io/neondatabase/wsproxy:latest
+    restart: unless-stopped
+    environment:
+      APPEND_PORT: "postgres:5432"
+      ALLOW_ADDR_REGEX: ".*"
+      LOG_TRAFFIC: "true"
+    ports:
+      - "5433:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
