@@ -7,14 +7,14 @@ Passo a passo para colocar o sistema no ar pela primeira vez.
 | Parte | Onde fica | Por quê |
 | --- | --- | --- |
 | Banco de dados | **Neon** (Postgres) | O projeto já usa o driver do Neon |
-| API (`apps/api`, NestJS) | **Vercel** | O Cloudflare Pages só hospeda arquivos estáticos; a API precisa de um servidor Node |
-| Front (`apps/web`, React + Vite) | **Cloudflare Pages** | É um site estático depois do build |
+| API (`apps/api`, NestJS) | **Vercel** | A API precisa de um servidor Node |
+| Front (`apps/web`, React + Vite) | **Cloudflare Workers** (arquivos estáticos) | É um site estático depois do build |
 
-**Por que a API não vai no Cloudflare Pages:** o Pages serve HTML, CSS e JavaScript prontos. A API é um
-servidor NestJS, que precisa rodar em Node. O Cloudflare tem os Workers para código de servidor, mas
-este projeto não foi testado lá, e o plano gratuito dos Workers limita o processamento de cada chamada
-a poucos milissegundos, o que não comporta o cálculo do hash da senha no login. Na Vercel a API sobe
-sem configuração, do mesmo jeito que a do `imperio-poker-ranking`.
+**Por que a API não vai no Cloudflare:** o front sobe no Cloudflare só como arquivos prontos (HTML, CSS
+e JavaScript). A API é um servidor NestJS, que precisa rodar em Node. Os Workers até rodam código de
+servidor, mas este projeto não foi testado lá, e o plano gratuito limita o processamento de cada
+chamada a poucos milissegundos, o que não comporta o cálculo do hash da senha no login. Na Vercel a API
+sobe sem configuração, do mesmo jeito que a do `imperio-poker-ranking`.
 
 A ordem importa, porque cada parte precisa do endereço da anterior:
 
@@ -22,7 +22,7 @@ A ordem importa, porque cada parte precisa do endereço da anterior:
 2. Banco no Neon
 3. Seed (tabelas e usuário administrador)
 4. API na Vercel
-5. Front no Cloudflare Pages
+5. Front no Cloudflare Workers
 6. Liberar o front na API (CORS)
 7. Testar
 
@@ -127,50 +127,61 @@ Se o `/health` der erro de conexão com o banco, tire o trecho `&channel_binding
 
 ---
 
-## 5. Front no Cloudflare Pages
+## 5. Front no Cloudflare Workers
 
-1. No painel do Cloudflare, abra **Workers & Pages**.
-2. **Create application → Pages → Connect to Git**.
-3. Escolha **GitHub**, autorize (**Install & Authorize**) e selecione o repositório
-   `finances-imperio`. Clique em **Begin setup**.
-4. Na tela **Set up builds and deployments**, preencha:
+O painel do Cloudflare hoje abre o fluxo de **Workers** ao criar uma aplicação a partir do Git (o
+antigo fluxo de Pages não aparece mais por padrão). O front sobe como um Worker só de arquivos
+estáticos, configurado pelo arquivo `wrangler.jsonc` na raiz do repositório.
+
+**Antes de começar:** o `wrangler.jsonc` precisa estar no GitHub (`git push`). Sem ele, o deploy não
+publica o site: o Cloudflare tenta configurar o projeto sozinho e abre um pull request no repositório.
+
+1. No painel do Cloudflare, abra **Workers & Pages** e clique em **Create application**.
+2. Escolha importar um repositório do **GitHub**, autorize se for pedido e selecione
+   `mazzillio/finances-imperio`.
+3. Na tela **Set up your application**, preencha:
 
    | Campo | Valor |
    | --- | --- |
-   | Production branch | `main` |
-   | Framework preset | `None` |
+   | Project name | `finances-imperio` (tem que ser igual ao `name` do `wrangler.jsonc`) |
    | Build command | `pnpm --filter @imperio/web build` |
-   | Build output directory | `apps/web/dist` |
-   | Root directory (advanced) → Path | **deixe vazio** |
+   | Deploy command | `npx wrangler deploy` (o padrão) |
+   | Preview command | `npx wrangler preview` (o padrão) |
+   | Enable Preview builds | Ligado ou desligado, tanto faz (veja "Previews" mais abaixo) |
+   | Protect with Cloudflare Access | Desligado |
 
-   O **Root directory fica vazio de propósito**. O `pnpm-lock.yaml` está na raiz do repositório, e o
-   Pages instala as dependências a partir da pasta indicada nesse campo. Com `apps/web` ali, ele não
-   acharia o arquivo de versões das dependências.
-5. Em **Environment variables (advanced)**, adicione:
+4. Abra **Advanced settings** e preencha:
 
-   | Nome | Valor |
+   | Campo | Valor |
    | --- | --- |
-   | `VITE_API_URL` | O endereço da API do passo 4, **sem** `/` no fim |
-   | `PNPM_VERSION` | `10.28.0` |
+   | Path | `/` (o padrão) |
+   | API token | **Create new token** (o padrão). Pode deixar o **API token name** vazio |
+   | Variable name | `VITE_API_URL` |
+   | Variable value | O endereço da API do passo 4, **sem** `/` no fim |
 
-   A versão do Node vem do arquivo `.node-version` (22), que já está na raiz do projeto.
-6. Clique em **Save and Deploy** e acompanhe o log do build.
-7. Anote o endereço do site: `https://NOME-DO-PROJETO.pages.dev`.
+   O **Path fica em `/` de propósito**. O `pnpm-lock.yaml` e o `wrangler.jsonc` estão na raiz do
+   repositório, e o Cloudflare instala as dependências e roda os comandos a partir dessa pasta.
 
-**Se o build falhar na instalação** (o log mostra `npm install` em vez de `pnpm install`, ou reclama
-da versão do pnpm), em **Settings → Environment variables** adicione `SKIP_DEPENDENCY_INSTALL` = `1` e
-troque o Build command para:
+   Não é preciso informar as versões: o Node vem do arquivo `.node-version` (22) e o pnpm vem do campo
+   `packageManager` do `package.json` (10.28.0).
+5. Clique em **Deploy** e acompanhe o log do build.
+6. Anote o endereço do site: `https://finances-imperio.SEU-SUBDOMINIO.workers.dev`. Ele aparece no fim
+   do log e na página do Worker.
+
+**Se o build falhar na instalação** (o log reclama da versão do pnpm), em **Settings → Build →
+Build variables and secrets** adicione `SKIP_DEPENDENCY_INSTALL` = `1` e troque o Build command para:
 
 ```bash
 npm install -g pnpm@10.28.0 && pnpm install --frozen-lockfile && pnpm --filter @imperio/web build
 ```
 
-**Rotas do sistema** (`/categorias`, `/usuarios`, `/convite`): funcionam ao recarregar a página sem
-configuração extra. Como o projeto não tem um `404.html`, o Pages trata o site como uma aplicação de
-página única e devolve o `index.html` para qualquer caminho.
+**Rotas do sistema** (`/categorias`, `/usuarios`, `/convite`): funcionam ao recarregar a página por
+causa da linha `"not_found_handling": "single-page-application"` do `wrangler.jsonc`, que devolve o
+`index.html` para qualquer caminho que não seja um arquivo.
 
 **Opcional, para não gastar builds à toa:** em **Settings → Build → Build watch paths**, coloque
-`apps/web/*` em *Include paths*. Assim, mudanças só na API não refazem o build do front.
+`apps/web/*` e `wrangler.jsonc` em *Include paths*. Assim, mudanças só na API não refazem o build do
+front.
 
 ---
 
@@ -179,7 +190,7 @@ página única e devolve o `index.html` para qualquer caminho.
 A API só aceita chamadas do endereço indicado em `WEB_ORIGIN`.
 
 1. Na Vercel, no projeto da API: **Settings → Environment Variables**.
-2. Adicione `WEB_ORIGIN` = `https://NOME-DO-PROJETO.pages.dev` (sem `/` no fim).
+2. Adicione `WEB_ORIGIN` = `https://finances-imperio.SEU-SUBDOMINIO.workers.dev` (sem `/` no fim).
    Para mais de um endereço, como um domínio próprio, separe por vírgula.
 3. Faça um novo deploy da API (**Deployments → ⋯ → Redeploy**). A variável só vale depois disso.
 
@@ -221,45 +232,40 @@ seu `.env`. Para não deixar a senha no histórico do terminal, comece a linha c
 bash estiver configurado para isso) ou rode de novo o script do seed, que também aplica as migrations.
 
 ### Mudou o endereço da API?
-O `VITE_API_URL` entra no site **durante o build**. Depois de trocar o valor no Cloudflare, é preciso
-um novo deploy do front (**Deployments → Retry deployment**).
+O `VITE_API_URL` entra no site **durante o build**. Troque o valor no Cloudflare em **Settings → Build →
+Build variables and secrets** e depois rode um novo build do front (refaça o último build ou dê um
+`git push`).
 
 ### Domínio próprio
-- **Front:** no Cloudflare, no projeto do Pages: **Custom domains → Set up a domain**. Adicione o
-  domínio por essa tela antes de criar o CNAME à mão, senão o site responde com erro 522.
+- **Front:** no Cloudflare, na página do Worker: **Settings → Domains & Routes → Add → Custom domain**.
+  O domínio precisa estar na mesma conta do Cloudflare; o registro de DNS é criado sozinho.
 - **API:** na Vercel, **Settings → Domains**.
 - Depois, inclua o novo endereço do front em `WEB_ORIGIN` e refaça o deploy da API.
 
 ### Previews
-O Cloudflare cria um endereço de teste para cada branch (`https://BRANCH.NOME-DO-PROJETO.pages.dev`).
-Esses endereços **não** estão em `WEB_ORIGIN`, então o login não funciona neles. Eles também apontam
+Com **Enable Preview builds** ligado, o Cloudflare cria um endereço de teste para cada branch que não
+seja a `main`. Esses endereços **não** estão em `WEB_ORIGIN`, então o login não funciona neles. Eles também apontam
 para a API e o banco de produção. Use para ver o visual, não para testar dados.
 
 ### Voltar atrás
-- **Código:** a Vercel (**Instant Rollback**) e o Cloudflare (**Deployments → Rollback to this
-  deployment**) voltam para um deploy anterior.
+- **Código:** a Vercel (**Instant Rollback**) e o Cloudflare (**Deployments**, escolhendo uma
+  versão anterior) voltam para um deploy anterior.
 - **Banco:** o plano gratuito do Neon guarda as últimas 6 horas para restauração. Antes de uma
   migration que apaga dados, crie um branch no Neon (**Branches → New Branch**) como cópia de segurança.
 
 ### Avisos
 - **Plano gratuito da Vercel (Hobby):** os termos dela restringem o uso comercial. Para uso do clube
   no dia a dia, confira se o plano atende ou considere o Pro.
-- **Cloudflare Pages:** a documentação atual recomenda os Workers para projetos novos. O Pages continua
-  funcionando e recebendo deploys; é só um aviso de para onde o Cloudflare está indo.
-- **HTTPS:** os endereços `*.vercel.app` e `*.pages.dev` já vêm com HTTPS. Não use o sistema por HTTP
+- **HTTPS:** os endereços `*.vercel.app` e `*.workers.dev` já vêm com HTTPS. Não use o sistema por HTTP
   em produção, porque as senhas trafegariam sem criptografia.
 
 ---
 
 ## Fontes
 
-- Cloudflare Pages: [Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/),
-  [Build configuration](https://developers.cloudflare.com/pages/configuration/build-configuration/),
-  [Build image](https://developers.cloudflare.com/pages/configuration/build-image/),
-  [Monorepos](https://developers.cloudflare.com/pages/configuration/monorepos/),
-  [Serving Pages](https://developers.cloudflare.com/pages/configuration/serving-pages/),
-  [Build watch paths](https://developers.cloudflare.com/pages/configuration/build-watch-paths/),
-  [Custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/)
+- Cloudflare Workers: [Builds: configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/),
+  [Build image](https://developers.cloudflare.com/workers/ci-cd/builds/build-image/),
+  [Single Page Application](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/)
 - Neon: [Regions](https://neon.com/docs/introduction/regions),
   [Connection pooling](https://neon.com/docs/connect/connection-pooling),
   [Connect from any app](https://neon.com/docs/connect/connect-from-any-app),

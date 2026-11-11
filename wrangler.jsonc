@@ -1,0 +1,11 @@
+{
+  // Deploy do front (apps/web) no Cloudflare Workers como site estático.
+  // O "name" precisa ser igual ao "Project name" escolhido no painel do Cloudflare.
+  "name": "finances-imperio",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./apps/web/dist",
+    // Devolve o index.html para rotas como /categorias ao recarregar a página.
+    "not_found_handling": "single-page-application"
+  }
+}
